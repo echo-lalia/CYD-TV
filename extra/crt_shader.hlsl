@@ -20,7 +20,7 @@
 //!PARAM roll_speed
 //!DESC Positive values are down, negative are up
 //!TYPE float
-8.0
+6.0
 //!PARAM roll_size
 //!TYPE float
 //!MINIMUM 0.0
@@ -35,7 +35,7 @@
 //!TYPE float
 //!MINIMUM 0.0
 //!MAXIMUM 0.2
-0.005
+0.0003
 
 
 //!PARAM static_noise_intensity

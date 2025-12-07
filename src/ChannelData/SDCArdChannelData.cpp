@@ -111,6 +111,11 @@ void ChannelData::reshuffleChannels(){
   // Seed the pseudo rng with the stored value
   randomSeed(shuffleSeed);
 
+  if (mAviFiles.size() <= 1){
+    Serial.println("No channels to reshuffle.");
+    return;
+  }
+
   for (int idx = 0; idx < mShuffledChannels.size() - 2; idx++){
     int idx2 = random(idx, mShuffledChannels.size());
     int tmp = mShuffledChannels[idx];
@@ -125,6 +130,7 @@ void ChannelData::reshuffleChannels(){
   }
   Serial.print("\n");
   #endif
+  Serial.println("Channels reshuffled.");
 }
 
 

@@ -130,7 +130,9 @@ SDCard::SDCard(gpio_num_t miso, gpio_num_t mosi, gpio_num_t clk, gpio_num_t cs)
 SDCard::~SDCard()
 {
   // All done, unmount partition and disable SDMMC or SPI peripheral
-  esp_vfs_fat_sdcard_unmount(MOUNT_POINT, m_card);
+  if (SDCard::isMounted()){
+    esp_vfs_fat_sdcard_unmount(MOUNT_POINT, m_card);
+  }
   //deinitialize the bus after all devices are removed
   spi_bus_free(spi_host_device_t(m_host.slot));
 }

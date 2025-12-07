@@ -58,9 +58,16 @@ void setupTv()
   if (!card->isMounted()) {
     Serial.println("Failed to mount SD Card");
     display.drawSDCardFailed();
-    while(true) {
-      delay(1000);
-    }
+    // destroy the card object (call the destructor to hopefully reset a malfunctioning card)
+    delete card;
+    // Set SDcard pins all low
+    pinMode(SD_CARD_MISO, OUTPUT); digitalWrite(SD_CARD_MISO, LOW);
+    pinMode(SD_CARD_MOSI, OUTPUT); digitalWrite(SD_CARD_MOSI, LOW);
+    pinMode(SD_CARD_CLK, OUTPUT); digitalWrite(SD_CARD_CLK, LOW);
+    pinMode(SD_CARD_CS, OUTPUT); digitalWrite(SD_CARD_CS, LOW);
+    // Short delay, then reset to try again.
+    delay(5000);
+    esp_restart();
   }
   channelData = new ChannelData(card, "/", "/bumpers");
   // audioSource = new SDCardAudioSource((ChannelData *) channelData);
