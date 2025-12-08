@@ -3,8 +3,6 @@
 #include "VideoPlayer.h"
 #include "AudioOutput/AudioOutput.h"
 #include "ChannelData/SDCardChannelData.h"
-// #include "VideoSource/VideoSource.h"
-// #include "AudioSource/AudioSource.h"
 #include "Displays/Display.h"
 
 
@@ -74,7 +72,6 @@ void VideoPlayer::play()
     return;
   }
   mState = VideoPlayerState::PLAYING;
-  // mVideoSource->setState(VideoPlayerState::PLAYING);
   mCurrentAudioSample = 0;
 }
 
@@ -86,7 +83,6 @@ void VideoPlayer::stop()
     return;
   }
   mState = VideoPlayerState::STOPPED;
-  // mVideoSource->setState(VideoPlayerState::STOPPED);
   mCurrentAudioSample = 0;
   if (xSemaphoreTake(displayControlMutex, 100)) {
     mDisplay.fillScreen(DisplayColors::BLACK);
@@ -130,7 +126,6 @@ void VideoPlayer::pause()
     return;
   }
   mState = VideoPlayerState::PAUSED;
-  // mVideoSource->setState(VideoPlayerState::PAUSED);
 }
 
 void VideoPlayer::playStatic()
@@ -141,7 +136,6 @@ void VideoPlayer::playStatic()
     return;
   }
   mState = VideoPlayerState::STATIC;
-  // mVideoSource->setState(VideoPlayerState::STATIC);
 }
 
 
@@ -179,35 +173,6 @@ void VideoPlayer::_drawStatic()
 }
 
 
-// Draw sparse noise effect when screen is touched
-void VideoPlayer::_drawSparseNoise()
-{
-  for (int i=0; i<staticBufLength; i++){
-    staticBuf[i] = random();
-  }
-  mDisplay.startWrite();
-  // Draw static one hline at a time.
-  for(int y=2; y<mDisplay.height(); y += 4){
-    uint32_t lineRandom = random();
-    // Only draw ~1/4 of lines to give some randomness to the distribution
-    if ((lineRandom & 0b11) == 0) {
-      // iterate over static buffer to quickly pseudo re-randomize the pixels
-      for (int i=0; i<staticBufLength; i++){
-        staticBuf[i] = staticBuf[i] ^ lineRandom;
-      }
-      // Decrease the brightness for each pixel by masking out some bits (pre-calculated 32 bits for two RGB565 ints, with swapped bytes)
-      for (int i=0; i<staticBufLength; i++){
-        sparseNoiseBuf[i] = (staticBuf[i] & 0b11001111011110111100111101111011);
-      }
-      // Draw hline of static to the display.
-      mDisplay.drawPixels(0, y, VIDEO_WIDTH, 1, (uint16_t *)sparseNoiseBuf);
-    }
-  }
-  // Done drawing static this frame.
-  mDisplay.endWrite();
-}
-
-
 int _touchJitterXOffset = 0;
 int _touchJitterYOffset = 0;
 // Update the offsets for the jitter effect used when display is touched.
@@ -227,6 +192,41 @@ void _updateTouchJitterOffsets(){
     _touchJitterYOffset = random(-8, 8);
     _touchJitterXOffset = random(-1, 1);
   }
+}
+
+
+// Draw sparse noise effect when screen is touched
+void VideoPlayer::_drawSparseNoise()
+{
+  // Previous noise lines may be leftover on the right of the display when x jitter is < 0
+  if (_touchJitterXOffset != 0) {
+    mDisplay.fillRect(VIDEO_WIDTH - abs(_touchJitterXOffset), 0, abs(_touchJitterXOffset) + 1, VIDEO_HEIGHT, 0);
+  }
+  // Initialize the static buffer with random pixels.
+  for (int i=0; i<staticBufLength; i++){
+    staticBuf[i] = random();
+  }
+  // we don't need to call `mDisplay.startWrite` because it should already be started by the _drawFrame function.
+  // Draw static one hline at a time.
+  for (int y=2; y<mDisplay.height(); y += 4){
+    uint32_t lineRandom = random();
+    // Only draw ~1/8 of the lines to give some randomness to the distribution
+    if ((lineRandom & 0b111) == 0) {
+      // iterate over static buffer to quickly pseudo re-randomize the pixels
+      for (int i=0; i<staticBufLength; i++){
+        staticBuf[i] = staticBuf[i] ^ lineRandom;
+      }
+      // Decrease the brightness for each pixel by masking out some bits (pre-calculated 32 bits for two RGB565 ints, with swapped bytes)
+      for (int i=0; i<staticBufLength; i++){
+        sparseNoiseBuf[i] = (staticBuf[i] & 0b11010111101111011101011110111101); // 10111 101110 10111
+      }
+      // Draw a double-height hline of static to the display.
+      mDisplay.drawPixels(0, y, VIDEO_WIDTH, 1, (uint16_t *)sparseNoiseBuf);
+      mDisplay.drawPixels(0, y + 1, VIDEO_WIDTH, 1, (uint16_t *)sparseNoiseBuf);
+    }
+  }
+  // Done drawing static this frame.
+  mDisplay.endWrite();
 }
 
 
@@ -272,11 +272,12 @@ void VideoPlayer::_drawFrame()
     #if CORE_DEBUG_LEVEL > 0
     mDisplay.drawFPS(frameTimes.size());
     #endif
-    mDisplay.endWrite();
     // draw sparse/touch noise effect
-    if (drawTouchDistortion){
+    if (drawTouchDistortion) {
       _drawSparseNoise();
     }
+    // Close the display write operation (which was opened above with the jpegBufferMutex).
+    mDisplay.endWrite();
     // Return display control.
     xSemaphoreGive(displayControlMutex);
     drewFrameLastLoop = true;
