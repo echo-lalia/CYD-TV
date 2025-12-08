@@ -70,9 +70,6 @@ void setupTv()
     esp_restart();
   }
   channelData = new ChannelData(card, "/", "/bumpers");
-  // audioSource = new SDCardAudioSource((ChannelData *) channelData);
-  // videoSource = new SDCardVideoSource((ChannelData *) channelData);
-
 
   #ifdef USE_DAC_AUDIO
   audioOutput = new DACOutput(I2S_NUM_0);
@@ -307,6 +304,10 @@ void loop()
     }
     #endif
   }
+  #endif
+
+  #ifdef TOUCH_PIN
+  videoPlayer->drawTouchDistortion = screenTouched;
   #endif
 
   buttonLoop();

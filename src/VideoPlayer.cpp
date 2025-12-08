@@ -153,6 +153,7 @@ int _doDraw(JPEGDRAW *pDraw)
 }
 
 
+// Draw full-screen static noise
 void VideoPlayer::_drawStatic()
 {
   if (xSemaphoreTake(displayControlMutex, 0)) {
@@ -178,6 +179,57 @@ void VideoPlayer::_drawStatic()
 }
 
 
+// Draw sparse noise effect when screen is touched
+void VideoPlayer::_drawSparseNoise()
+{
+  for (int i=0; i<staticBufLength; i++){
+    staticBuf[i] = random();
+  }
+  mDisplay.startWrite();
+  // Draw static one hline at a time.
+  for(int y=2; y<mDisplay.height(); y += 4){
+    uint32_t lineRandom = random();
+    // Only draw ~1/4 of lines to give some randomness to the distribution
+    if ((lineRandom & 0b11) == 0) {
+      // iterate over static buffer to quickly pseudo re-randomize the pixels
+      for (int i=0; i<staticBufLength; i++){
+        staticBuf[i] = staticBuf[i] ^ lineRandom;
+      }
+      // Decrease the brightness for each pixel by masking out some bits (pre-calculated 32 bits for two RGB565 ints, with swapped bytes)
+      for (int i=0; i<staticBufLength; i++){
+        sparseNoiseBuf[i] = (staticBuf[i] & 0b11001111011110111100111101111011);
+      }
+      // Draw hline of static to the display.
+      mDisplay.drawPixels(0, y, VIDEO_WIDTH, 1, (uint16_t *)sparseNoiseBuf);
+    }
+  }
+  // Done drawing static this frame.
+  mDisplay.endWrite();
+}
+
+
+int _touchJitterXOffset = 0;
+int _touchJitterYOffset = 0;
+// Update the offsets for the jitter effect used when display is touched.
+void _updateTouchJitterOffsets(){
+  // Most common behaviour; slightly jitter draw position
+  if (random(0, 6) != 0) {
+    _touchJitterXOffset = random(-1, 1);
+    _touchJitterYOffset = random(-1, 1);
+  } 
+  // Rarest behaviour; jitter the X axis more (causes major artifacts on screen)
+  else if (random(0, 12) == 0) {
+    _touchJitterXOffset = random(-5, 5);
+    _touchJitterYOffset = random(-1, 1);
+  }
+  // Less rare behaviour; jitter the Y axis more (causes minimal artifacts)
+  else {
+    _touchJitterYOffset = random(-8, 8);
+    _touchJitterXOffset = random(-1, 1);
+  }
+}
+
+
 void VideoPlayer::_drawFrame()
 {
   bool frameDrawn = false;
@@ -191,7 +243,14 @@ void VideoPlayer::_drawFrame()
         mDisplay.startWrite();
         mJpeg.setUserPointer(this);
         mJpeg.setPixelType(RGB565_BIG_ENDIAN);
-        mJpeg.decode(0, 0, 0);
+        if (drawTouchDistortion){
+          // Draw frame with a random offset if screen is being touched
+          mJpeg.decode(_touchJitterXOffset, _touchJitterYOffset, 0);
+          _updateTouchJitterOffsets();
+        } else {
+          // Draw normally
+          mJpeg.decode(0, 0, 0);
+        }
       }
       frameReady = false;
       frameDrawn = true;
@@ -214,6 +273,10 @@ void VideoPlayer::_drawFrame()
     mDisplay.drawFPS(frameTimes.size());
     #endif
     mDisplay.endWrite();
+    // draw sparse/touch noise effect
+    if (drawTouchDistortion){
+      _drawSparseNoise();
+    }
     // Return display control.
     xSemaphoreGive(displayControlMutex);
     drewFrameLastLoop = true;

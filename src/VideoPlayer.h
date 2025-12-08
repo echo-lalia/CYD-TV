@@ -63,6 +63,8 @@ class VideoPlayer {
     // Buffer used for quickly drawing "static" (random noise) to the display.
     uint32_t *staticBuf = (uint32_t*) malloc(VIDEO_WIDTH * 2);
     size_t staticBufLength = VIDEO_WIDTH / 2;
+    // Matching buffer for storing modified sparse noise line
+    uint32_t *sparseNoiseBuf = (uint32_t*) malloc(VIDEO_WIDTH * 2);
 
     // The buffer to use for jpeg frame decoding.
     uint8_t *jpegDecodeBuffer = NULL;
@@ -91,6 +93,7 @@ class VideoPlayer {
     static void _framePlayerTask(void *param);
     static void _audioPlayerTask(void *param);
 
+    void _drawSparseNoise();
     void _drawStatic();
     void _drawFrame();
     void framePlayerTask();
@@ -110,4 +113,7 @@ class VideoPlayer {
     void stop();
     void pause();
     void playStatic();
+
+    // Enable/disable drawing a distortion/noise (when display is touched)
+    bool drawTouchDistortion = false;
 };

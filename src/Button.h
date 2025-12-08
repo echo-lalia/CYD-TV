@@ -27,13 +27,22 @@
   #endif
 #endif
 
+// setup touch pin
+#ifdef TOUCH_PIN
+  #ifndef TOUCH_PIN_TRIGGER_VAL
+  #define TOUCH_PIN_TRIGGER_VAL LOW
+  #endif
+  #ifndef TOUCH_PIN_MODE
+  #define TOUCH_PIN_MODE INPUT_PULLUP
+  #endif
+#endif
+
 
 bool changeChannelPressed = false;
 int currentVolume = 255;
 bool softPowerEnabled = true;
+bool screenTouched = false;
 
-// int _btn_left=-1;
-// int _btn_right=-1;
 
 bool buttonRight(){
 #ifdef BUTTON_R
@@ -77,12 +86,16 @@ void buttonInit(){
   pinMode(SOFT_POWER_SWITCH_PIN, SOFT_POWER_SWITCH_MODE);
   #endif
 
+  #ifdef TOUCH_PIN
+  pinMode(TOUCH_PIN, TOUCH_PIN_MODE);
+  #endif
+
   #ifdef BUTTON_L
   #ifdef BUTTON_R
   pinMode(BUTTON_L, INPUT_PULLUP);
   pinMode(BUTTON_R, INPUT);
   #endif
-#endif
+  #endif
 }
 
 void buttonLoop(){
@@ -95,17 +108,9 @@ void buttonLoop(){
   #ifdef SOFT_POWER_SWITCH_PIN
   softPowerEnabled = (digitalRead(SOFT_POWER_SWITCH_PIN) == SOFT_POWER_SWITCH_ON_VAL);
   #endif
-
-  // static uint_fast64_t buttonTimeStamp = 0;
-  // if (millis() - buttonTimeStamp > 20) {
-  //   buttonTimeStamp = millis();
-  //   #ifdef BUTTON_L
-  //     #ifdef BUTTON_R
-  //   _btn_right = digitalRead(BUTTON_R);
-  //   _btn_left = digitalRead(BUTTON_L);
-  //     #endif
-  //   #endif
-  // }
+  #ifdef TOUCH_PIN
+  screenTouched = (digitalRead(TOUCH_PIN) == TOUCH_PIN_TRIGGER_VAL);
+  #endif
 }
 
 
