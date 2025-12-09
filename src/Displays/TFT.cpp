@@ -8,6 +8,11 @@
 #endif
 
 
+#ifndef SD_MOUNT_FAILED_MSG
+#define SD_MOUNT_FAILED_MSG "Failed to mount SD Card"
+#endif
+
+
 TFT::TFT(): tft(new TFT_eSPI()) {}
 
 void TFT::init(){
@@ -97,7 +102,7 @@ void TFT::drawSDCardFailed() {
   tft->setCursor(0, 20);
   tft->setTextColor(TFT_WHITE);
   tft->setTextSize(2);
-  tft->println("Failed to mount SD Card");
+  tft->println(SD_MOUNT_FAILED_MSG);
 }
 
 void TFT::drawFPS(int fps) {
