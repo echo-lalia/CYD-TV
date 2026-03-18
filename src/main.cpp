@@ -154,6 +154,15 @@ void setup()
   if (softPowerEnabled){
     // run initialization for audio and video.
     setupTv();
+
+    #ifdef TOUCH_PIN_NIGHT_MODE_SHORTCUT
+    // If the screen is being touched during startup, enable night mode
+    if (screenTouched) {
+      videoPlayer->nightModeEnabled = true;
+      Serial.println("Night mode enabled");
+    }
+    #endif
+
   }
   else{
     // Powered off. Go to sleep instead.

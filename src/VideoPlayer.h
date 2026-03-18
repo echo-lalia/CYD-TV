@@ -45,8 +45,6 @@ class VideoPlayer {
     int mChannelVisible = 0;
     VideoPlayerState mState = VideoPlayerState::STOPPED;
 
-    // video playing
-    Display &mDisplay;
     // Mutex for ensuring one-at-a-time access to display communication.
     SemaphoreHandle_t displayControlMutex = xSemaphoreCreateMutex();
     JPEGDEC mJpeg = JPEGDEC();
@@ -114,6 +112,10 @@ class VideoPlayer {
     void pause();
     void playStatic();
 
+    // Display to draw video frames on
+    Display &mDisplay;
     // Enable/disable drawing a distortion/noise (when display is touched)
     bool drawTouchDistortion = false;
+    // Whether or not to use an alternate drawing function to reduce brightness and blue light.
+    bool nightModeEnabled = false;
 };
