@@ -26,6 +26,7 @@ bool ChannelData::fetchChannelData() {
   mAviFiles = mSDCard->listFiles(mAviPath, ".avi");
   mBumperFiles = mSDCard->listFiles(mBumperPath, ".avi");
 
+  Serial.printf("Found %d main AVI video files, and %d bumper video files\n", mAviFiles.size(), mBumperFiles.size());
   
 
   
