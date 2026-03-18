@@ -156,20 +156,18 @@ int _doDraw(JPEGDRAW *pDraw)
 int _doDrawNightMode(JPEGDRAW *pDraw)
 {
   VideoPlayer *player = (VideoPlayer *)pDraw->pUser;
-  // Reduce brightness and blue light by masking out some bits (mask for 16 bit RGB565 ints, with swapped bytes)
+  // Iterate over each pixel to modify the brightness of each channel
   for (int i=0; i<(pDraw->iWidth * pDraw->iHeight); i++){
-    // 11111 111111 00000
-    // 110 0000011111 111
     uint16_t px = swapI16Bytes(pDraw->pPixels[i]);
     uint16_t r = px >> 11;
     uint16_t g = (px >> 5) & 0b111111;
     uint16_t b = px & 0b11111;
     r /= 2;
+    // reduce green slightly more than red to prevent a greenish tint that appears otherwise
     g /= 4;
-    // g = g * 2 / 5; // reduce green slightly more than red to prevent a greenish tint that appears otherwise
-    b /= 8; // reduce blue the most because it's the hardest on the eyes in low light
+    // reduce blue the most because it's the hardest on the eyes in low light
+    b /= 8;
     pDraw->pPixels[i] = swapI16Bytes((r << 11) | (g << 5) | b); // combine back into RGB565 format
-    // pDraw->pPixels[i] = (pDraw->pPixels[i] & 0b1110000011111111);
   }
   player->mDisplay.drawPixels(pDraw->x, pDraw->y, pDraw->iWidth, pDraw->iHeight, pDraw->pPixels);
   return 1;
